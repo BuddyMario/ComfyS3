@@ -34,7 +34,8 @@ class SaveVideoFilesS3:
             file = f"{filename}_{counter:05}_.{ext}"
             
             # Upload the local file to S3
-            s3_path = os.path.join(full_output_folder, file)
+            #s3_path = os.path.join(full_output_folder, file)
+            s3_path = full_output_folder + "/" + file
             
             file_path = S3_INSTANCE.upload_file(path, s3_path)
               
