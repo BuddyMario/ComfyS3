@@ -7,6 +7,7 @@ S3_INSTANCE = get_s3_instance()
 class SaveVideoFilesS3:
     def __init__(self):
         self.s3_output_dir = os.getenv("S3_OUTPUT_DIR")
+        self.container_id = os.getenv("VAST_CONTAINERLABEL")
         self.prefix_append = ""
 
     @classmethod
@@ -31,13 +32,16 @@ class SaveVideoFilesS3:
         
         for path in local_files:
             ext = path.split(".")[-1]
-            file = f"{filename}_{counter:05}_.{ext}"
+            file = f"{filename}_{counter:05}_{self.container_id}.{ext}"
             
             # Upload the local file to S3
-            #s3_path = os.path.join(full_output_folder, file)
-            s3_path = full_output_folder + "/" + file
+            s3_path = os.path.join(full_output_folder, file)
+            s3_path = s3_path.replace('\\', '/')
             
             file_path = S3_INSTANCE.upload_file(path, s3_path)
+
+            with open("F:\\Code\\Cloud ComfyUI\\log.txt", 'a') as f:
+                f.write(f"upload file path: {path}, S3 path: {s3_path}, returned: {file_path}\n")
               
             # Add the s3 path to the s3_image_paths list
             s3_video_paths.append(file_path)
