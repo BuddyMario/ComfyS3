@@ -15,17 +15,35 @@ class LoadImageS3:
             files = S3_INSTANCE.get_files(prefix=input_dir)
         except Exception as e:
             files = []
-        return {"required":
-                    {"image": (sorted(files), {"image_upload": False})},
+        return {
+                    "required": {
+                        "image": (sorted(files), ),
+                    },
+                    "optional": {
+                        "image_text": ("STRING", {"multiline": False, "default": ""}),
+                    }
                 }
-    
+
     CATEGORY = "ComfyS3"
     RETURN_TYPES = ("IMAGE", "MASK")
     FUNCTION = "load_image"
     
-    def load_image(self, image):
-        s3_path = os.path.join(os.getenv("S3_INPUT_DIR"), image)
-        image_path = S3_INSTANCE.download_file(s3_path=s3_path, local_path=f"input/{image}")
+    def load_image(self, image, image_text=None):
+
+        # Determine which image filename to use
+        filename_to_load = image
+
+        if image_text:  # If the text input is not empty, use it instead
+            filename_to_load = image_text
+
+    # Let the user know which file is being loaded for clarity
+        print(f"[ComfyS3] - Selected Filename: {filename_to_load}")
+
+        s3_path = os.path.join(os.getenv("S3_INPUT_DIR"), filename_to_load)
+        s3_path = s3_path.replace('\\', '/')
+        print(f"[ComfyS3] - Attempting to access S3 path: s3://{os.getenv('S3_BUCKET_NAME')}/{s3_path}")
+
+        image_path = S3_INSTANCE.download_file(s3_path=s3_path, local_path=f"input/{filename_to_load}")
         
         img = Image.open(image_path)
         output_images = []
