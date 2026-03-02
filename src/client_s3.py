@@ -98,16 +98,21 @@ class S3:
             logger.error(err)
 
     def upload_file(self, local_path, s3_path):
-        try:
-            bucket = self.s3_client.Bucket(self.bucket_name)
-            bucket.upload_file(local_path, s3_path)
-            return s3_path
-        except NoCredentialsError:
-            err = "Credentials not available or not valid."
-            logger.error(err)
-        except Exception as e:
-            err = f"Failed to upload file to S3: {e}"
-            logger.error(err)
+        import time
+        for attempt in range(3):
+            try:
+                bucket = self.s3_client.Bucket(self.bucket_name)
+                bucket.upload_file(local_path, s3_path)
+                return s3_path
+            except NoCredentialsError:
+                err = "Credentials not available or not valid."
+                logger.error(err)
+                return
+            except Exception as e:
+                err = f"Failed to upload file to S3 (attempt {attempt + 1}/3): {e}"
+                logger.error(err)
+                if attempt < 2:
+                    time.sleep(2)
     
     def get_save_path(self, filename_prefix, image_width=0, image_height=0):
         def map_filename(filename):
