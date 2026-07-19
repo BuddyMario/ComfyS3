@@ -31,18 +31,17 @@ class SaveVideoFilesS3:
         s3_video_paths = list()
         
         for path in local_files:
-            ext = path.split(".")[-1]
-            file = f"{filename}_{counter:05}_{self.container_id}.{ext}"
-            
+            # Keep the original basename so files sharing an extension don't overwrite each other
+            file = f"{filename}_{counter:05}_{self.container_id}_{os.path.basename(path)}"
+
             # Upload the local file to S3
             s3_path = os.path.join(full_output_folder, file)
             s3_path = s3_path.replace('\\', '/')
-            
-            file_path = S3_INSTANCE.upload_file(path, s3_path)
 
-            with open("F:\\Code\\Cloud ComfyUI\\log.txt", 'a') as f:
-                f.write(f"upload file path: {path}, S3 path: {s3_path}, returned: {file_path}\n")
-              
+            file_path = S3_INSTANCE.upload_file(path, s3_path)
+            if file_path is None:
+                raise RuntimeError(f"Failed to upload {path} to S3 at {s3_path}")
+
             # Add the s3 path to the s3_image_paths list
             s3_video_paths.append(file_path)
         
