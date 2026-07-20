@@ -44,7 +44,14 @@ class LoadImageS3:
         print(f"[ComfyS3] - Attempting to access S3 path: s3://{os.getenv('S3_BUCKET_NAME')}/{s3_path}")
 
         image_path = S3_INSTANCE.download_file(s3_path=s3_path, local_path=f"input/{filename_to_load}")
-        
+
+        if image_path is None:
+            raise FileNotFoundError(
+                f"[ComfyS3] Could not download image from S3: "
+                f"s3://{os.getenv('S3_BUCKET_NAME')}/{s3_path} — "
+                f"the file does not exist or is not accessible. Check the filename, bucket, and S3_INPUT_DIR."
+            )
+
         img = Image.open(image_path)
         output_images = []
         output_masks = []

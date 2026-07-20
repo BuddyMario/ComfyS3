@@ -20,6 +20,13 @@ class DownloadFileS3:
     FUNCTION = "download_file_s3"
     
     def download_file_s3(self, s3_path, local_path):
-        local_path = S3_INSTANCE.download_file(s3_path=s3_path, local_path=local_path)
-        print(f"Downloaded file from S3 to {local_path}")
-        return local_path
+        result_path = S3_INSTANCE.download_file(s3_path=s3_path, local_path=local_path)
+
+        if result_path is None:
+            raise FileNotFoundError(
+                f"[ComfyS3] Could not download file from S3: {s3_path} — "
+                f"the file does not exist or is not accessible. Check the S3 path and bucket."
+            )
+
+        print(f"Downloaded file from S3 to {result_path}")
+        return (result_path,)

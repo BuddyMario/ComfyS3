@@ -1,4 +1,5 @@
 import os
+import re
 
 from ..client_s3 import get_s3_instance
 S3_INSTANCE = get_s3_instance()
@@ -27,12 +28,23 @@ class SaveVideoFilesS3:
     def save_video_files(self, filenames, filename_prefix="VideoFiles"):
         filename_prefix += self.prefix_append
         local_files = filenames[1]
-        full_output_folder, filename, counter, _, filename_prefix = S3_INSTANCE.get_save_path(filename_prefix)
+        full_output_folder, _, _, _, filename_prefix = S3_INSTANCE.get_save_path(filename_prefix)
         s3_video_paths = list()
-        
+
+        # The prefix no longer appears in the key, so get_save_path's prefix-based counter
+        # can't be used. Derive it from the trailing number of the existing keys instead.
+        existing_files = S3_INSTANCE.get_files(full_output_folder) or []
+        counters = [int(m.group(1)) for f in existing_files
+                    if (m := re.search(r'_(\d+)\.[^.]+$', f))]
+        counter = max(counters, default=0) + 1
+
+        # Only include the container ID in the key when running in a Vast.ai container
+        container_part = f"{self.container_id}_" if self.container_id else ""
         for path in local_files:
-            # Keep the original basename so files sharing an extension don't overwrite each other
-            file = f"{filename}_{counter:05}_{self.container_id}_{os.path.basename(path)}"
+            # Keep the original basename so files sharing an extension don't overwrite
+            # each other; the shared trailing counter keeps runs distinct.
+            stem, ext = os.path.splitext(os.path.basename(path))
+            file = f"{stem}_{container_part}{counter:05}{ext}"
 
             # Upload the local file to S3
             s3_path = os.path.join(full_output_folder, file)
