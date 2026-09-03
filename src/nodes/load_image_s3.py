@@ -39,18 +39,25 @@ class LoadImageS3:
     # Let the user know which file is being loaded for clarity
         print(f"[ComfyS3] - Selected Filename: {filename_to_load}")
 
-        s3_path = os.path.join(os.getenv("S3_INPUT_DIR"), filename_to_load)
-        s3_path = s3_path.replace('\\', '/')
-        print(f"[ComfyS3] - Attempting to access S3 path: s3://{os.getenv('S3_BUCKET_NAME')}/{s3_path}")
+        local_path = f"input/{filename_to_load}"
 
-        image_path = S3_INSTANCE.download_file(s3_path=s3_path, local_path=f"input/{filename_to_load}")
+        # Reuse an existing local copy instead of re-downloading (and overwriting) it
+        if os.path.isfile(local_path) and os.path.getsize(local_path) > 0:
+            print(f"[ComfyS3] - Found local file, skipping download: {local_path}")
+            image_path = local_path
+        else:
+            s3_path = os.path.join(os.getenv("S3_INPUT_DIR"), filename_to_load)
+            s3_path = s3_path.replace('\\', '/')
+            print(f"[ComfyS3] - Attempting to access S3 path: s3://{os.getenv('S3_BUCKET_NAME')}/{s3_path}")
 
-        if image_path is None:
-            raise FileNotFoundError(
-                f"[ComfyS3] Could not download image from S3: "
-                f"s3://{os.getenv('S3_BUCKET_NAME')}/{s3_path} — "
-                f"the file does not exist or is not accessible. Check the filename, bucket, and S3_INPUT_DIR."
-            )
+            image_path = S3_INSTANCE.download_file(s3_path=s3_path, local_path=local_path)
+
+            if image_path is None:
+                raise FileNotFoundError(
+                    f"[ComfyS3] Could not download image from S3: "
+                    f"s3://{os.getenv('S3_BUCKET_NAME')}/{s3_path} — "
+                    f"the file does not exist or is not accessible. Check the filename, bucket, and S3_INPUT_DIR."
+                )
 
         img = Image.open(image_path)
         output_images = []
